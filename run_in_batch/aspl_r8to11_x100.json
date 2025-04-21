@@ -1,0 +1,165 @@
+{
+    "test_lable": "aspl_r8to11_x100",
+    "settings": {
+        "MODEL_ROOT": [
+            "${ADB_PROJECT_ROOT}"
+        ],
+        "r": [
+            8,
+            9,
+            10,
+            11
+        ],
+        "max_train_steps": [
+            1000
+        ],
+        "attack_steps": [
+            100
+        ],
+        "attack_mode": [
+            "aspl"
+        ]
+    },
+    "untest_args_list": [
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 8,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 8,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 8,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 8,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 8,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 9,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 9,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 9,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 9,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 9,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 10,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 10,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 10,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 10,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 10,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 11,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 11,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 11,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 11,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        },
+        {
+            "MODEL_ROOT": "${ADB_PROJECT_ROOT}",
+            "r": 11,
+            "max_train_steps": 1000,
+            "attack_steps": 100,
+            "attack_mode": "aspl"
+        }
+    ]
+}
