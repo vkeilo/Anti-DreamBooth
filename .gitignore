@@ -2,3 +2,8 @@ data/
 __pycache__
 .vscode
 .DS_Store
+run_in_batch/*.json
+wandb
+outputs
+*.log
+exp_datas_output

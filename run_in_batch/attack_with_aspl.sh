@@ -1,14 +1,14 @@
 export EXPERIMENT_NAME="ASPL"
-export MODEL_PATH="./stable-diffusion/stable-diffusion-2-1-base"
+export MODEL_PATH=$model_path
 export CLEAN_TRAIN_DIR="$data_path/$dataset_name/$data_id/set_A" 
 export CLEAN_ADV_DIR="$data_path/$dataset_name/$data_id/set_B"
 export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/tmp_ADVERSARIAL"
-export CLASS_DIR="data/class-person"
+export CLASS_DIR=$class_dir
 
 
 # ------------------------- Train ASPL on set B -------------------------
 mkdir -p $OUTPUT_DIR
-cp -r $CLEAN_TRAIN_DIR $OUTPUT_DIR/image_clean
+cp -r $CLEAN_TRAIN_DIR $OUTPUT_DIR/image_clean_ref
 cp -r $CLEAN_ADV_DIR $OUTPUT_DIR/image_before_addding_noise
 echo $r
 max_r=$(echo "scale=6; ($r + 0.1) / 127.5" | bc -l)
@@ -36,6 +36,8 @@ accelerate launch attacks/aspl.py \
   --learning_rate=5e-7 \
   --pgd_alpha=5e-3 \
   --pgd_eps=$max_r \
+  --mixed_precision=$mixed_precision  \
+  --report_to=$report_to
 
 
 # ------------------------- Train DreamBooth on perturbed examples -------------------------
