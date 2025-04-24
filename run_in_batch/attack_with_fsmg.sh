@@ -107,7 +107,7 @@ accelerate launch attacks/fsmg.py \
   --enable_xformers_memory_efficient_attention \
   --instance_data_dir=$CLEAN_ADV_DIR \
   --output_dir=$OUTPUT_DIR \
-  --instance_prompt="${$instance_prompt}" \
+  --instance_prompt="${instance_prompt}" \
   --resolution=512 \
   --gradient_accumulation_steps=1 \
   --max_train_steps=$attack_steps \

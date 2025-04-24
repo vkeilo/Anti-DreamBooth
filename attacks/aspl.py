@@ -561,7 +561,7 @@ def pgd_attack(
 
         alpha = args.pgd_alpha
         eps = args.pgd_eps
-
+        # print(f"max: {perturbed_images.max().item()},min: {perturbed_images.min().item()},eps: {eps}")
         adv_images = perturbed_images + alpha * perturbed_images.grad.sign()
         eta = torch.clamp(adv_images - original_images, min=-eps, max=+eps)
         perturbed_images = torch.clamp(original_images + eta, min=-1, max=+1).detach_()
