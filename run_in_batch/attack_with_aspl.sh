@@ -7,7 +7,7 @@ export CLASS_DIR=$class_dir
 
 
 # ------------------------- Train ASPL on set B -------------------------
-rm -r $OUTPUT_DIR/*
+rm -r $OUTPUT_DIR/* 2>/dev/null || true
 mkdir -p $OUTPUT_DIR
 cp -r $CLEAN_TRAIN_DIR $OUTPUT_DIR/image_clean_ref
 cp -r $CLEAN_ADV_DIR $OUTPUT_DIR/image_before_addding_noise
@@ -19,10 +19,10 @@ aspl_cmd="""accelerate launch attacks/aspl.py \
 --enable_xformers_memory_efficient_attention \
 --instance_data_dir_for_train=$CLEAN_TRAIN_DIR \
 --instance_data_dir_for_adversarial=$CLEAN_ADV_DIR \
---instance_prompt='a photo of sks person' \
+--instance_prompt='$instance_prompt' \
 --class_data_dir=$class_data_dir \
 --num_class_images=200 \
---class_prompt='a photo of person' \
+--class_prompt='$class_prompt' \
 --output_dir=$OUTPUT_DIR \
 --center_crop \
 --with_prior_preservation \

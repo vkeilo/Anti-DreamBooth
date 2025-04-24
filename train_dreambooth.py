@@ -1003,7 +1003,7 @@ def main(args):
                         ckpt_pipeline.save_pretrained(save_path)
                         del ckpt_pipeline
                         prompts = args.inference_prompts.split(";")
-                        # vkeilo del it, no neet to infer now
+                        # vkeilo del it, no need to infer now
                         # infer(save_path, prompts, n_img=16, bs=4, n_steps=100)
                         logger.info(f"Saved state to {save_path}")
 

@@ -15,8 +15,8 @@ train_dreambooth_command="""accelerate launch train_dreambooth.py --pretrained_m
 --output_dir=$REF_MODEL_PATH \
 --with_prior_preservation \
 --prior_loss_weight=1.0 \
---instance_prompt='a photo of sks person' \
---class_prompt='a photo of person' \
+--instance_prompt='$instance_prompt' \
+--class_prompt='$class_prompt' \
 --inference_prompt='a photo of sks person;a dslr portrait of sks person' \
 --resolution=512 \
 --train_batch_size=2 \
@@ -97,6 +97,7 @@ export CLEAN_ADV_DIR="$data_path/$dataset_name/$data_id/set_B"
 export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/tmp_ADVERSARIAL"
 
 mkdir -p $OUTPUT_DIR
+rm -r $OUTPUT_DIR/image* 2>/dev/null || true
 cp -r $CLEAN_TRAIN_DIR $OUTPUT_DIR/image_clean_ref
 cp -r $CLEAN_ADV_DIR $OUTPUT_DIR/image_before_addding_noise
 max_r=$(echo "scale=6; ($r + 0.1) / 127.5" | bc -l)
@@ -106,7 +107,7 @@ accelerate launch attacks/fsmg.py \
   --enable_xformers_memory_efficient_attention \
   --instance_data_dir=$CLEAN_ADV_DIR \
   --output_dir=$OUTPUT_DIR \
-  --instance_prompt="a photo of sks person" \
+  --instance_prompt="${$instance_prompt}" \
   --resolution=512 \
   --gradient_accumulation_steps=1 \
   --max_train_steps=$attack_steps \

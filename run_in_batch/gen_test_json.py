@@ -74,6 +74,9 @@ params_options = {
     "mixed_precision":['fp16'],
     "model_path":['/data/home/yekai/github/MetaCloak/SD/stable-diffusion-2-1-base'],
     "class_data_dir":['/data/home/yekai/github/DiffAdvPerturbationBench/datasets/class-person'],
+    "instance_prompt":['a photo of sks person'],
+    "class_prompt":['a photo of a person'],
+
     "report_to":['wandb'],
     # sys env set
     "WANDB_MODE":["offline"],
