@@ -7,10 +7,7 @@ import numpy as np
 
 def set_env_with_expansion(key, value):
     """
-    将环境变量值中的 ${VAR_NAME} 替换为对应的环境变量值，并设置新的环境变量。
-    
-    :param key: 要设置的环境变量名称
-    :param value: 包含 ${VAR_NAME} 的字符串，表示需要解析的环境变量值
+    Replace ${VAR_NAME} in the environment variable value with the corresponding environment variable value and set the new environment variable.
     """
     # 使用正则表达式找到 ${VAR_NAME} 并替换为对应的环境变量值
     pattern = re.compile(r'\$\{([^}]+)\}')
@@ -30,13 +27,15 @@ def test_one_args(args,test_lable):
     # bash run : nohup bash script/gen_and_eval_vk.sh > output_MAT-1000-200-6-6-x1x1-radius11-allSGLD-rubust0.log 2>&1
     os.environ["test_timestamp"] = str(int(time.time()))
     test_timestamp = os.getenv("test_timestamp")
-    run_name = f"-id{os.getenv('data_id')}-r{os.getenv('r')}-{os.getenv('test_timestamp')}"
+    run_name = f"-id{os.getenv('data_id')}-r{os.getenv('r')}-steps{os.getenv('attack_steps')}-{os.getenv('test_timestamp')}"
     if os.getenv('attack_mode') in ["aspl"]:
         run_name = "ASPL" + run_name
-    if os.getenv('attack_mode') in ["fsmg"]:
+    elif os.getenv('attack_mode') in ["fsmg"]:
         run_name = "FSGM" + run_name
+    else:
+        exit(f"attack_mode {os.getenv('attack_mode')} not support")
     os.environ["wandb_run_name"] = run_name  
-    # python 实现 export test_timestamp=$(date +%s)
+    #export test_timestamp=$(date +%s)
     print(f"run_name: {run_name}")
     if os.getenv('attack_mode') in ["aspl"]:
         os.system(f"bash run_in_batch/attack_with_aspl.sh > output_{run_name}.log 2>&1")
@@ -85,16 +84,16 @@ def check_file_for_pattern(file_path, pattern="find function last"):
                 lines = file.readlines()
                 if lines:
                     last_line = lines[-1].strip()  # 获取最后一行并去除两边空白
-                    print(f"检测到的最后一行: {last_line}")
+                    print(f"Last line detected:{last_line}")
                     # 检查最后一行是否以指定模式开头
                     if last_line.startswith(pattern):
-                        print("找到匹配的行，退出检测。")
+                        print("Find a matching line and exit the test.")
                         return last_line
         except Exception as e:
-            print(f"读取文件时出错: {e}")
+            print(f"No matching row found, wait 3 minutes and recheck...(task error, please check task settings:{e})")
         
         # 等待 3 分钟（180 秒）
-        print("未找到匹配的行，等待 3 分钟后重新检测...")
+        print("")
         time.sleep(180)
 
 if __name__ == "__main__":

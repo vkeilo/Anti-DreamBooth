@@ -6,4 +6,5 @@ run_in_batch/*.json
 wandb
 outputs
 *.log
-exp_datas_output
+exp_datas_output/*
+!exp_datas_output/*.sh

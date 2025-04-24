@@ -44,71 +44,18 @@ if [[ -n "$target_dir" ]]; then
     # 判断提取的 data_id 是否与当前环境变量 data_id 不相等
     echo "now target id $data_id ,we have ckp of id $extracted_data_id"
     if [[ "$extracted_data_id" != "$data_id" ]]; then
-        echo "删除目录: $target_dir"
+        echo "del dir: $target_dir"
         rm -rf "$REF_MODEL_PATH"  # 删除不匹配的目录
         # ------------------------- Train DreamBooth model on set A -------------------------
         eval $train_dreambooth_command
-        # accelerate launch train_dreambooth.py \
-        #   --pretrained_model_name_or_path=$MODEL_PATH  \
-        #   --enable_xformers_memory_efficient_attention \
-        #   --train_text_encoder \
-        #   --instance_data_dir=$CLEAN_TRAIN_DIR\
-        #   --class_data_dir=$CLASS_DIR \
-        #   --output_dir=$REF_MODEL_PATH \
-        #   --with_prior_preservation \
-        #   --prior_loss_weight=1.0 \
-        #   --instance_prompt="a photo of sks person" \
-        #   --class_prompt="a photo of person" \
-        #   --inference_prompt="a photo of sks person;a dslr portrait of sks person" \
-        #   --resolution=512 \
-        #   --train_batch_size=2 \
-        #   --gradient_accumulation_steps=1 \
-        #   --learning_rate=5e-7 \
-        #   --lr_scheduler="constant" \
-        #   --lr_warmup_steps=0 \
-        #   --num_class_images=200 \
-        #   --max_train_steps=$max_train_steps \
-        #   --checkpointing_steps=$max_train_steps \
-        #   --center_crop \
-        #   --mixed_precision=$mixed_precision \
-        #   --prior_generation_precision=$mixed_precision \
-        #   --sample_batch_size=16  \
-        #   --report_to=$report_to  \
-        #   --train_text_encoder=$train_text_encoder
         echo "rename $REF_MODEL_PATH/checkpoint-${max_train_steps} to $REF_MODEL_PATH/checkpoint-${max_train_steps}-id${data_id}"
         mv $REF_MODEL_PATH/checkpoint-${max_train_steps} $REF_MODEL_PATH/checkpoint-${max_train_steps}-id${data_id}
     else
-        echo "ckp匹配，无须再次生成: $target_dir"
+        echo "There is already a fine-tuned model matching id-$target_dir"
     fi
 else
-    echo "未找到符合命名规则的文件夹。"
+    echo "No fine-tuned model matching id was found"
     eval $train_dreambooth_command
-    # accelerate launch train_dreambooth.py \
-    #   --pretrained_model_name_or_path=$MODEL_PATH  \
-    #   --enable_xformers_memory_efficient_attention \
-    #   --train_text_encoder \
-    #   --instance_data_dir=$CLEAN_TRAIN_DIR\
-    #   --class_data_dir=$CLASS_DIR \
-    #   --output_dir=$REF_MODEL_PATH \
-    #   --with_prior_preservation \
-    #   --prior_loss_weight=1.0 \
-    #   --instance_prompt="a photo of sks person" \
-    #   --class_prompt="a photo of person" \
-    #   --inference_prompt="a photo of sks person;a dslr portrait of sks person" \
-    #   --resolution=512 \
-    #   --train_batch_size=2 \
-    #   --gradient_accumulation_steps=1 \
-    #   --learning_rate=5e-7 \
-    #   --lr_scheduler="constant" \
-    #   --lr_warmup_steps=0 \
-    #   --num_class_images=200 \
-    #   --max_train_steps=$max_train_steps \
-    #   --checkpointing_steps=$max_train_steps \
-    #   --center_crop \
-    #   --mixed_precision=$mixed_precision \
-    #   --prior_generation_precision=$mixed_precision \
-    #   --sample_batch_size=16  \
-    #   --report_to=$report_to
     echo "rename $REF_MODEL_PATH/checkpoint-${max_train_steps} to $REF_MODEL_PATH/checkpoint-${max_train_steps}-id${data_id}"
     mv $REF_MODEL_PATH/checkpoint-${max_train_steps} $REF_MODEL_PATH/checkpoint-${max_train_steps}-id${data_id}
 fi

@@ -59,19 +59,19 @@ def generate_lin_interval_list(start, end, num):
     return np.linspace(start, end, num=num).tolist()
 
 # Define the possible values for each parameter
-test_lable = "fsmg_VGGFace2_random50_r4p8p12p16_test"
+test_lable = "fsmg_VGGFace2_random50_r4p8p12p16"
 params_options = {
     "data_path": [f"{proj_abs_path}/datasets"],
     "dataset_name":["VGGFace2-clean"],
-    # "data_id":[i for i in range(50)],
-    "data_id":[1],
+    "data_id":[i for i in range(50)],
+    # "data_id":[0,1],
     "r": [4,8,12,16],
     # no need for aspl
-    "max_train_steps": [10],
-    # aspl is max_train_steps 50,fsmg is 100,now all 50
-    "attack_steps": [10],
+    "max_train_steps": [1000],
+    # aspl is 50,fsmg is 100,(Anti-dreambooth default)
+    "attack_steps": [100],
     "attack_mode":['fsmg'],
-    "mixed_precision":['bf16'],
+    "mixed_precision":['fp16'],
     "model_path":['/data/home/yekai/github/MetaCloak/SD/stable-diffusion-2-1-base'],
     "class_data_dir":['/data/home/yekai/github/DiffAdvPerturbationBench/datasets/class-person'],
     "report_to":['wandb'],

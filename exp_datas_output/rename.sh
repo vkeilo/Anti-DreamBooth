@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 根目录
-root_dir="你的目录路径"
+root_dir="your path of dir exp_datas_output"
 
 # 遍历所有子目录
 find "$root_dir" -type d -name "100" | while read dir; do
