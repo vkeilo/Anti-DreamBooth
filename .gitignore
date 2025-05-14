@@ -8,3 +8,4 @@ outputs
 *.log
 exp_datas_output/*
 !exp_datas_output/*.sh
+finished_test

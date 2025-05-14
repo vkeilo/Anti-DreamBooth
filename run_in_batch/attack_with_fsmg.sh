@@ -17,7 +17,6 @@ train_dreambooth_command="""accelerate launch train_dreambooth.py --pretrained_m
 --prior_loss_weight=1.0 \
 --instance_prompt='$instance_prompt' \
 --class_prompt='$class_prompt' \
---inference_prompt='a photo of sks person;a dslr portrait of sks person' \
 --resolution=512 \
 --train_batch_size=2 \
 --gradient_accumulation_steps=1 \
@@ -35,6 +34,8 @@ train_dreambooth_command="""accelerate launch train_dreambooth.py --pretrained_m
 --gradient_checkpointing \
 --use_8bit_adam \
 """
+# --inference_prompt='a photo of sks person;a dslr portrait of sks person' \
+
 echo $train_dreambooth_command
 
 # 检查是否找到符合命名规则的文件夹
@@ -94,11 +95,12 @@ fi
 # ------------------------- Train FSMG on set B -------------------------
 export CLEAN_TRAIN_DIR="$data_path/$dataset_name/$data_id/set_A" 
 export CLEAN_ADV_DIR="$data_path/$dataset_name/$data_id/set_B"
+export CLEAN_REF="$data_path/$dataset_name/$data_id/set_C"
 export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/tmp_ADVERSARIAL"
 
 mkdir -p $OUTPUT_DIR
 rm -r $OUTPUT_DIR/image* 2>/dev/null || true
-cp -r $CLEAN_TRAIN_DIR $OUTPUT_DIR/image_clean_ref
+cp -r $CLEAN_REF $OUTPUT_DIR/image_clean_ref
 cp -r $CLEAN_ADV_DIR $OUTPUT_DIR/image_before_addding_noise
 max_r=$(echo "scale=6; ($r + 0.1) / 127.5" | bc -l)
 echo $max_r
