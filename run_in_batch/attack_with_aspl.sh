@@ -3,7 +3,7 @@ export MODEL_PATH=$model_path
 export CLEAN_TRAIN_DIR="$data_path/$dataset_name/$data_id/set_A" 
 export CLEAN_ADV_DIR="$data_path/$dataset_name/$data_id/set_B"
 export CLEAN_REF="$data_path/$dataset_name/$data_id/set_C"
-export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/tmp_ADVERSARIAL"
+export OUTPUT_DIR="outputs/$EXPERIMENT_NAME/${UNIQUE_TMP_DIR}"
 export CLASS_DIR=$class_dir
 
 
@@ -32,14 +32,19 @@ aspl_cmd="""accelerate launch attacks/aspl.py \
 --train_text_encoder \
 --train_batch_size=1 \
 --max_train_steps=$attack_steps \
---max_f_train_steps=3 \
+--max_f_train_steps=10 \
 --max_adv_train_steps=6 \
 --checkpointing_iterations=$attack_steps \
---learning_rate=5e-7 \
+--learning_rate=5e-5 \
 --pgd_alpha=5e-3 \
 --pgd_eps=$max_r \
 --mixed_precision=$mixed_precision  \
---report_to=$report_to
+--report_to=$report_to  \
+--robust_start=$robust_start    \
+--robust_fixed=$robust_fixed    \
+--sigma=$sigma  \
+--num_weight_samples_when_delta=$num_weight_samples_when_delta \
+--num_weight_samples_when_theta=$num_weight_samples_when_theta \
 """
 echo $aspl_cmd
 eval $aspl_cmd

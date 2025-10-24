@@ -59,25 +59,36 @@ def generate_lin_interval_list(start, end, num):
     return np.linspace(start, end, num=num).tolist()
 
 # Define the possible values for each parameter
-test_lable = "fsmg_Wikiart_SD21_random50_r4p8p12p16"
+# aspl的代理模型学习率已经由5e-7更改为5e-5,单次迭代由3更改为10
+test_lable = "aspl_wikiart_SD21_random40_r12_savemodels_robust2.64e-3_0.4_0.8_aglr5e-5_delta10theta10"
 params_options = {
     "data_path": [f"{proj_abs_path}/datasets"],
+    # wikiart-data/VGGFace2-clean
     "dataset_name":["wikiart-data"],
     "data_id":[i for i in range(50)],
     # "data_id":[0,1],
-    "r": [4,8,12,16],
+    "r": [12],
     # no need for aspl
     "max_train_steps": [1000],
     # aspl is 50,fsmg is 100,(Anti-dreambooth default)
-    "attack_steps": [100],
-    "attack_mode":['fsmg'],
+    "attack_steps": [50],
+    "attack_mode":['aspl'],
+    # only for aspl:robust_start robust_fixed sigma 
+    "robust_start":[0.4],
+    "robust_fixed":[0.8],
+    "sigma":[0.00264],
+    "num_weight_samples_when_delta":[10],
+    "num_weight_samples_when_theta":[10],
     "mixed_precision":['fp16'],
     "model_path":[f'{proj_abs_path}/SD/stable-diffusion-2-1-base'],
     # change
+    # "class_data_dir":['/data/home/yekai/github/DiffAdvPerturbationBench/datasets/class-person'],
     "class_data_dir":['/data/home/yekai/github/DiffAdvPerturbationBench/datasets/class-artwork'],
     # 'a painting of sks artwork'
     "instance_prompt":['a painting of sks artwork'],
     "class_prompt":['a painting of artwork'],
+    # "instance_prompt":['a photo of sks person'],
+    # "class_prompt":['a photo of person'],
 
     "report_to":['wandb'],
     # sys env set

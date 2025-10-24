@@ -28,6 +28,9 @@ def test_one_args(args,test_lable):
     os.environ["test_timestamp"] = str(int(time.time()))
     test_timestamp = os.getenv("test_timestamp")
     run_name = f"-id{os.getenv('data_id')}-r{os.getenv('r')}-steps{os.getenv('attack_steps')}-{os.getenv('test_timestamp')}"
+    # 唯一的tmp目录标识
+    unique_tmp_dir = f"tmp_ADVERSARIAL_{test_timestamp}"  
+    os.environ["UNIQUE_TMP_DIR"] = unique_tmp_dir 
     if os.getenv('attack_mode') in ["aspl"]:
         run_name = "ASPL" + run_name
     elif os.getenv('attack_mode') in ["fsmg"]:
@@ -53,13 +56,14 @@ def test_one_args(args,test_lable):
     if not os.path.exists(f"logs_output/{test_lable}"):
         os.mkdir(f"logs_output/{test_lable}")
     if os.getenv('attack_mode') in ["aspl"]:
-        os.system(f"mv outputs/ASPL/tmp_ADVERSARIAL exp_datas_output/{test_lable}/exp_data_{run_name}")
-        os.system(f"rm -r outputs/ASPL")
+        os.system(f"mv outputs/ASPL/{unique_tmp_dir} exp_datas_output/{test_lable}/exp_data_{run_name}")
+        # os.system(f"cp -r outputs/ASPL/{unique_tmp_dir} exp_datas_output/{test_lable}/exp_data_{run_name}")
+        os.system(f"rm -r outputs/ASPL/{unique_tmp_dir}")
     if os.getenv('attack_mode') in ["fsmg"]:
-        os.system(f"mv outputs/FSMG/tmp_ADVERSARIAL/checkpoint* outputs/FSMG/")
-        os.system(f"mv outputs/FSMG/tmp_ADVERSARIAL exp_datas_output/{test_lable}/exp_data_{run_name}")
-        os.system(f"mkdir outputs/FSMG/tmp_ADVERSARIAL")
-        os.system(f"mv outputs/FSMG/checkpoint* outputs/FSMG/tmp_ADVERSARIAL/")
+        os.system(f"mv outputs/FSMG/{unique_tmp_dir}/checkpoint* outputs/FSMG/")
+        os.system(f"mv outputs/FSMG/{unique_tmp_dir} exp_datas_output/{test_lable}/exp_data_{run_name}")
+        os.system(f"mkdir outputs/FSMG/{unique_tmp_dir}")
+        os.system(f"mv outputs/FSMG/checkpoint* outputs/FSMG/{unique_tmp_dir}/")
     os.system(f"mv output_{run_name}.log logs_output/{test_lable}/output_{run_name}.log")
     return run_name
 
