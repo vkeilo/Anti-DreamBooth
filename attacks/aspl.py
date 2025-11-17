@@ -523,15 +523,61 @@ def train_one_epoch(
         total_loss_val = 0.0
 
         # ---------- 这里是关键：同一step内做K次权重噪声采样并平均梯度 ----------
+        # for k in range(K):
+        #     # 临时加噪（forward前加，backward后撤销）
+        #     seed_te   = torch.seed()
+        #     seed_unet = torch.seed()
+        #     if noise_strength > 0:
+        #         _apply_weight_noise_(unet,         noise_strength, +1.0, seed_te)  # 你已有的函数：对每个param加 N(0,σ) 噪声
+        #         _apply_weight_noise_(text_encoder, noise_strength, +1.0, seed_unet)
+
+        #     # 前向
+        #     noise = torch.randn_like(latents)  
+        #     bsz = latents.shape[0]  
+        #     timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device).long()  
+        #     noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)  
+        #     encoder_hidden_states = text_encoder(input_ids)[0]  
+        #     model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample  
+
+        #     if noise_scheduler.config.prediction_type == "epsilon":  
+        #         target = noise  
+        #     elif noise_scheduler.config.prediction_type == "v_prediction":  
+        #         target = noise_scheduler.get_velocity(latents, noise, timesteps)  
+        #     else:  
+        #         raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")  
+
+        #     if args.with_prior_preservation:  
+        #         model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim=0)  
+        #         target,     target_prior     = torch.chunk(target,     2, dim=0)  
+        #         instance_loss = F.mse_loss(model_pred.float(),       target.float(),       reduction="mean")  
+        #         prior_loss    = F.mse_loss(model_pred_prior.float(), target_prior.float(), reduction="mean")  
+        #         loss = instance_loss + args.prior_loss_weight * prior_loss  
+        #     else:  
+        #         loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")  
+
+        #     # 累计平均梯度：每次只反传 loss/K
+        #     (loss / float(K)).backward()
+        #     total_loss_val += float(loss.detach())
+
+        #     # 立刻撤销刚才加的噪声（把 +noise 加到的参数再减回去）
+        #     if noise_strength > 0:
+        #         _apply_weight_noise_(unet,         noise_strength, -1.0, seed_te)
+        #         _apply_weight_noise_(text_encoder, noise_strength, -1.0, seed_unet)
+        # ---------- K次结束，做一次优化 ----------
+        avg_grads = [torch.zeros_like(p, memory_format=torch.preserve_format) for p in params_to_optimize]
+
+        # fix NaN in pth
         for k in range(K):
-            # 临时加噪（forward前加，backward后撤销）
+            # 恢复干净参数
+            unet.load_state_dict(unet_clean_state)
+            text_encoder.load_state_dict(text_encoder_clean_state)
+
+            # 加噪
             seed_te   = torch.seed()
             seed_unet = torch.seed()
             if noise_strength > 0:
-                _apply_weight_noise_(unet,         noise_strength, +1.0, seed_te)  # 你已有的函数：对每个param加 N(0,σ) 噪声
-                _apply_weight_noise_(text_encoder, noise_strength, +1.0, seed_unet)
-
-            # 前向
+                _apply_weight_noise_(unet, noise_strength, +1.0, seed_unet)
+                _apply_weight_noise_(text_encoder, noise_strength, +1.0, seed_te)
             noise = torch.randn_like(latents)  
             bsz = latents.shape[0]  
             timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device).long()  
@@ -545,7 +591,7 @@ def train_one_epoch(
                 target = noise_scheduler.get_velocity(latents, noise, timesteps)  
             else:  
                 raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")  
-
+            # forward + backward
             if args.with_prior_preservation:  
                 model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim=0)  
                 target,     target_prior     = torch.chunk(target,     2, dim=0)  
@@ -555,15 +601,24 @@ def train_one_epoch(
             else:  
                 loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")  
 
-            # 累计平均梯度：每次只反传 loss/K
-            (loss / float(K)).backward()
-            total_loss_val += float(loss.detach())
+            (loss / K).backward()
 
-            # 立刻撤销刚才加的噪声（把 +noise 加到的参数再减回去）
+            # 把当前梯度累积到 avg_grads，然后立刻清空 .grad，防止累积爆炸
+            for p, g_buf in zip(params_to_optimize, avg_grads):
+                if p.grad is not None:
+                    g_buf.add_(p.grad)
+                    p.grad = None  # 清空显存，防止梯度堆积
+
+            # 撤噪
             if noise_strength > 0:
-                _apply_weight_noise_(unet,         noise_strength, -1.0, seed_te)
-                _apply_weight_noise_(text_encoder, noise_strength, -1.0, seed_unet)
-        # ---------- K次结束，做一次优化 ----------
+                _apply_weight_noise_(unet, noise_strength, -1.0, seed_unet)
+                _apply_weight_noise_(text_encoder, noise_strength, -1.0, seed_te)
+
+        # 统一赋回平均梯度（除以 K）
+        for p, g_buf in zip(params_to_optimize, avg_grads):
+            p.grad = g_buf / K
+
+
         torch.nn.utils.clip_grad_norm_(params_to_optimize, 1.0, error_if_nonfinite=True)  
         optimizer.step()  
         optimizer.zero_grad(set_to_none=True)
@@ -661,36 +716,102 @@ def pgd_attack(
 
         avg_loss_val = 0.0
 
-        # ====== 同一 PGD 步内做 K 次权重噪声采样，平均梯度到 δ ======
+        # # ====== 同一 PGD 步内做 K 次权重噪声采样，平均梯度到 δ ======
+        # for k in range(K):
+        #     # 临时加噪（可逆）
+        #     seed_te   = torch.seed()
+        #     seed_unet = torch.seed()
+        #     _apply_weight_noise_(text_encoder, noise_strength,   +1.0, seed_te)
+        #     _apply_weight_noise_(unet,         noise_strength, +1.0, seed_unet)
+
+        #     # 前向（注意 VAE 需要对图像反传，所以不加 no_grad；其它用 autocast 节省显存）
+        #     # 1) 文本编码（可 no_grad）
+        #     with torch.no_grad(), torch.autocast(device_type="cuda", dtype=weight_dtype, enabled=(device.type=="cuda")):
+        #         encoder_hidden_states = text_encoder(input_ids)[0]  # [B, 77, 1024] for SD2.1
+
+        #     # 2) VAE 编码图像 → latents（要对图像回传）
+        #     with torch.autocast(device_type="cuda", dtype=weight_dtype, enabled=(device.type=="cuda")):
+        #         latents = vae.encode(perturbed_images.to(dtype=weight_dtype)).latent_dist.sample()
+        #         latents = latents * vae.config.scaling_factor
+
+        #         noise = torch.randn_like(latents)
+        #         bsz   = latents.shape[0]
+        #         timesteps = torch.randint(
+        #             0, noise_scheduler.config.num_train_timesteps, (bsz,),
+        #             device=latents.device
+        #         ).long()
+        #         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+
+        #         # UNet 预测
+        #         model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+
+        #         # 组装目标
+        #         if noise_scheduler.config.prediction_type == "epsilon":
+        #             target = noise
+        #         elif noise_scheduler.config.prediction_type == "v_prediction":
+        #             target = noise_scheduler.get_velocity(latents, noise, timesteps)
+        #         else:
+        #             raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
+
+        #         loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
+
+        #         # one-step target shift（若启用）
+        #         if target_tensor is not None:
+        #             step_out = noise_scheduler.step(model_pred, timesteps, noisy_latents)
+        #             xtm1_pred   = step_out.prev_sample
+        #             xtm1_target = noise_scheduler.add_noise(
+        #                 target_tensor.to(device, dtype=weight_dtype),
+        #                 noise,
+        #                 timesteps - 1
+        #             )
+        #             loss = loss - F.mse_loss(xtm1_pred, xtm1_target, reduction="mean")
+
+        #     # 把本次采样的梯度均摊到 δ：loss/K
+        #     (loss / float(K)).backward()
+        #     avg_loss_val += float(loss.detach()) / float(K)
+
+        #     # 立刻撤回这次噪声，回到干净权重
+        #     _apply_weight_noise_(unet,         noise_strength, -1.0, seed_unet)
+        #     _apply_weight_noise_(text_encoder, noise_strength,   -1.0, seed_te)
+
+        #     # 及时丢掉临时张量引用
+        #     del encoder_hidden_states, latents, noisy_latents, model_pred, target, noise, timesteps, loss
+
+        # ====== 同一 PGD 步内做 K 次权重噪声采样，平均梯度到 δ（稳定版） ======
+
+        # fix NaN in pth
+        optimizer = torch.optim.SGD([perturbed_images], lr=1.0)  # 临时优化器，用于统一处理梯度
+        optimizer.zero_grad(set_to_none=True)
+        avg_grads = torch.zeros_like(perturbed_images)
+
         for k in range(K):
             # 临时加噪（可逆）
             seed_te   = torch.seed()
             seed_unet = torch.seed()
-            _apply_weight_noise_(text_encoder, noise_strength,   +1.0, seed_te)
+            _apply_weight_noise_(text_encoder, noise_strength, +1.0, seed_te)
             _apply_weight_noise_(unet,         noise_strength, +1.0, seed_unet)
 
-            # 前向（注意 VAE 需要对图像反传，所以不加 no_grad；其它用 autocast 节省显存）
-            # 1) 文本编码（可 no_grad）
-            with torch.no_grad(), torch.autocast(device_type="cuda", dtype=weight_dtype, enabled=(device.type=="cuda")):
+            # 1) 文本编码（no_grad, 节省显存）
+            with torch.no_grad(), torch.autocast(device_type="cuda", dtype=weight_dtype, enabled=(device.type == "cuda")):
                 encoder_hidden_states = text_encoder(input_ids)[0]  # [B, 77, 1024] for SD2.1
 
-            # 2) VAE 编码图像 → latents（要对图像回传）
-            with torch.autocast(device_type="cuda", dtype=weight_dtype, enabled=(device.type=="cuda")):
+            # 2) VAE 编码图像 → latents
+            with torch.autocast(device_type="cuda", dtype=weight_dtype, enabled=(device.type == "cuda")):
                 latents = vae.encode(perturbed_images.to(dtype=weight_dtype)).latent_dist.sample()
                 latents = latents * vae.config.scaling_factor
 
                 noise = torch.randn_like(latents)
-                bsz   = latents.shape[0]
+                bsz = latents.shape[0]
                 timesteps = torch.randint(
                     0, noise_scheduler.config.num_train_timesteps, (bsz,),
                     device=latents.device
                 ).long()
                 noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
-                # UNet 预测
+                # UNet 前向预测
                 model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
-                # 组装目标
+                # 目标组装
                 if noise_scheduler.config.prediction_type == "epsilon":
                     target = noise
                 elif noise_scheduler.config.prediction_type == "v_prediction":
@@ -703,7 +824,7 @@ def pgd_attack(
                 # one-step target shift（若启用）
                 if target_tensor is not None:
                     step_out = noise_scheduler.step(model_pred, timesteps, noisy_latents)
-                    xtm1_pred   = step_out.prev_sample
+                    xtm1_pred = step_out.prev_sample
                     xtm1_target = noise_scheduler.add_noise(
                         target_tensor.to(device, dtype=weight_dtype),
                         noise,
@@ -711,16 +832,33 @@ def pgd_attack(
                     )
                     loss = loss - F.mse_loss(xtm1_pred, xtm1_target, reduction="mean")
 
-            # 把本次采样的梯度均摊到 δ：loss/K
-            (loss / float(K)).backward()
+            # ========= 新逻辑：显式收集梯度，防止累积溢出 =========
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+
+            if not torch.isfinite(loss):
+                print(f"[WARN] Non-finite loss at PGD step {step}, sample {k}, skipped.")
+                _apply_weight_noise_(unet, noise_strength, -1.0, seed_unet)
+                _apply_weight_noise_(text_encoder, noise_strength, -1.0, seed_te)
+                continue
+
+            # 把本次梯度加进平均梯度缓冲区
+            avg_grads.add_(perturbed_images.grad.detach() / float(K))
+
+            # 清空 grad，释放显存
+            perturbed_images.grad = None
+            optimizer.zero_grad(set_to_none=True)
+
             avg_loss_val += float(loss.detach()) / float(K)
 
-            # 立刻撤回这次噪声，回到干净权重
-            _apply_weight_noise_(unet,         noise_strength, -1.0, seed_unet)
-            _apply_weight_noise_(text_encoder, noise_strength,   -1.0, seed_te)
+            # 撤回这次噪声，回到干净权重
+            _apply_weight_noise_(unet, noise_strength, -1.0, seed_unet)
+            _apply_weight_noise_(text_encoder, noise_strength, -1.0, seed_te)
 
-            # 及时丢掉临时张量引用
             del encoder_hidden_states, latents, noisy_latents, model_pred, target, noise, timesteps, loss
+
+        # ✅ 最终一次性赋值平均梯度到 perturbed_images
+        perturbed_images.grad = avg_grads
 
         # ====== 一次 PGD 步（对 δ）======
         with torch.no_grad():
@@ -1175,14 +1313,39 @@ def main(args):
                 num_weight_samples=args.num_weight_samples_when_theta
             )
 
+            if (i + 1) % 100 == 0:
+                # ====== 新增：分别统计并打印 NaN/Inf 占比 ======
+                def print_nan_ratio(model, name, step):
+                    total_params = 0
+                    nan_params = 0
+                    inf_params = 0
+                    with torch.no_grad():
+                        for p in model.parameters():
+                            if not p.data.dtype.is_floating_point:
+                                continue
+                            t = p.data
+                            total_params += t.numel()
+                            nan_params += torch.isnan(t).sum().item()
+                            inf_params += torch.isinf(t).sum().item()
+                    nan_ratio = nan_params / max(total_params, 1) * 100
+                    inf_ratio = inf_params / max(total_params, 1) * 100
+                    print(f"[Step {step:04d}] {name}: "
+                        f"NaN {nan_params:,}/{total_params:,} ({nan_ratio:.4f}%), "
+                        f"Inf {inf_params:,}/{total_params:,} ({inf_ratio:.4f}%)")
+
+                # 分别检查两个模型
+                print_nan_ratio(f[0], "UNet", i + 1)
+                print_nan_ratio(f[1], "TextEncoder", i + 1)
             if (i + 1) % args.checkpointing_iterations == 0:
                 save_folder = f"{args.output_dir}/noise-ckpt/{i+1}"
                 os.makedirs(save_folder, exist_ok=True)
+                
                 # vkeilo add it for model save
                 # models_folder = f"{args.output_dir}/models/{i+1}"  
                 # os.makedirs(models_folder, exist_ok=True)  
                 # torch.save(f[0].state_dict(), os.path.join(models_folder, "unet.pth"))  
                 # torch.save(f[1].state_dict(), os.path.join(models_folder, "text_encoder.pth")) 
+
                 noised_imgs = perturbed_data.detach()
                 
                 # vkeilo add it for new sample save

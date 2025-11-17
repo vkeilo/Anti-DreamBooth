@@ -60,14 +60,15 @@ def generate_lin_interval_list(start, end, num):
 
 # Define the possible values for each parameter
 # aspl的代理模型学习率已经由5e-7更改为5e-5,单次迭代由3更改为10
-test_lable = "aspl_wikiart_SD21_random40_r12_savemodels_robust2.64e-3_0.4_0.8_aglr5e-5_delta10theta10"
+test_lable = "aspl_wikiart_SD21_random50_r1r2r8_robust2.64e-3_0.4_0.8_aglr5e-5_delta10theta10_fix"
 params_options = {
     "data_path": [f"{proj_abs_path}/datasets"],
     # wikiart-data/VGGFace2-clean
     "dataset_name":["wikiart-data"],
+    # "dataset_name":["VGGFace2-clean"],
     "data_id":[i for i in range(50)],
     # "data_id":[0,1],
-    "r": [12],
+    "r": [1,2,8],
     # no need for aspl
     "max_train_steps": [1000],
     # aspl is 50,fsmg is 100,(Anti-dreambooth default)

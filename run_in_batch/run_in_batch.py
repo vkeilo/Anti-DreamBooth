@@ -58,7 +58,7 @@ def test_one_args(args,test_lable):
     if os.getenv('attack_mode') in ["aspl"]:
         os.system(f"mv outputs/ASPL/{unique_tmp_dir} exp_datas_output/{test_lable}/exp_data_{run_name}")
         # os.system(f"cp -r outputs/ASPL/{unique_tmp_dir} exp_datas_output/{test_lable}/exp_data_{run_name}")
-        os.system(f"rm -r outputs/ASPL/{unique_tmp_dir}")
+        # os.system(f"rm -r outputs/ASPL/{unique_tmp_dir}")
     if os.getenv('attack_mode') in ["fsmg"]:
         os.system(f"mv outputs/FSMG/{unique_tmp_dir}/checkpoint* outputs/FSMG/")
         os.system(f"mv outputs/FSMG/{unique_tmp_dir} exp_datas_output/{test_lable}/exp_data_{run_name}")
